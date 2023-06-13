@@ -19,17 +19,18 @@ def remove_subdiv(G):
     G.delete_vertex(random_vertex)
     return random_vertex
 
-def AMCS(score_function, current_graph=graphs.RandomTree(5), max_depth=5, max_level=3, trees_only=False):
-    '''The proposed AMCS algorithm'''
+def AMCS(score_function, initial_graph=graphs.RandomTree(5), max_depth=5, max_level=3, trees_only=False):
+    '''The AMCS algorithm'''
     if trees_only == True:
         NMCS = NMCS_trees
     else:
         NMCS = NMCS_connected_graphs
-    print("Best score (initial):", float(score_function(current_graph)))
-    plot(current_graph, vertex_labels=False).show()
+    print("Best score (initial):", float(score_function(initial_graph)))
+    plot(initial_graph, vertex_labels=False).show()
     depth = 0
     level = 1
-    min_order = current_graph.order()
+    min_order = initial_graph.order()
+    current_graph = initial_graph.copy()
     while score_function(current_graph) <= 0 and level <= max_level:
         next_graph = current_graph.copy()
         while next_graph.order() > min_order:
