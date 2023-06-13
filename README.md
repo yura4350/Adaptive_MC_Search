@@ -1,6 +1,6 @@
 # Adaptive_MC_Search
 
-This repository contains the official SageMath implementation of the adaptive Monte Carlo Search (AMCS) algorithm from the paper "An Asymmetric Contrastive Loss for Handling Imbalanced Datasets".
+This repository contains the official SageMath implementation of the adaptive Monte Carlo Search (AMCS) algorithm from the paper "Adaptive Monte Carlo search for conjecture refutation in graph theory".
 
 AMCS is a conjecture-refuting algorithm designed to search for graph counterexamples to graph theory conjectures. It is built on the nested Monte Carlo search (NMCS) algorithm, which was employed to refute spectral graph theory conjectures in a previous work.
 
