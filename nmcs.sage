@@ -69,7 +69,7 @@ def NMCS_connected_graphs(current_graph, depth, level, score_function, is_parent
             else:
                 next_graph.add_edge(x)
             next_graph = NMCS_connected_graphs(next_graph, depth, level-1, score_function, False)
-            if float(score_function(next_graph)) > best_score:
+            if score_function(next_graph) > best_score:
                 best_graph = next_graph.copy()
                 best_score = score_function(next_graph)
                 if current_graph.order() > 20 and is_parent == True:
