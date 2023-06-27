@@ -1,3 +1,5 @@
+from numpy import argmax, abs
+
 def add_randleaf(G):
     '''Adds a random leaf to G'''
     n = G.order()
