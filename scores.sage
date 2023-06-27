@@ -39,7 +39,7 @@ def m(G):
 
 def harmonic_index(G):
     '''Returns the harmonic index of G'''
-    return sum([1/(G.degree(u) + G.degree(v)) for u, v, x in G.edges()])
+    return sum([2/(G.degree(u) + G.degree(v)) for u, v, x in G.edges()])
 
 def randic_index(G):
     '''Returns the Randic index of G'''
