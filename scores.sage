@@ -1,3 +1,5 @@
+from numpy import argmax, abs
+
 def proximity(G):
     '''Returns the proximity of the graph G'''
     n = G.order()
