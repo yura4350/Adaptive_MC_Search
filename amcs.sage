@@ -1,6 +1,4 @@
 from time import time
-from scores import Conj1_score
-from nmcs import NMCS_connected_graphs
 
 def remove_randleaf(G):
     '''Removes a random leaf from G'''
