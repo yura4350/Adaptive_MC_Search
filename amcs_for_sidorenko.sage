@@ -37,18 +37,9 @@ def remove_subdiv(G):
     G.delete_vertex(random_vertex)
     return random_vertex
 
-##
-## Modified AMCS Class/Function
-##
-
-# The AMCS function itself does not need much change, as it takes score_function as an argument.
-# The main changes are in how it's called and the definition of the score function.
-# We might want to adjust min_order based on H.
 
 def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, max_level=3, trees_only=False, H_for_min_order=None, visualize_steps=False):
     '''The AMCS algorithm'''
-    # NMCS is assumed to be NMCS_connected_graphs as per original code if trees_only is False.
-    # If trees_only is True, it would use NMCS_trees (not provided here).
     # We'll assume trees_only = False for Sidorenko's conjecture on general graphs G.
     if trees_only:
         # NMCS = NMCS_trees # This function needs to be defined if trees_only=True is used
@@ -99,12 +90,6 @@ def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, ma
                 else:
                     removed_vertex_label = remove_subdiv(temp_graph_for_pruning)
                 
-                # Original AMCS relabels vertices after deletion:
-                # if removed_vertex_label is not None:
-                #    temp_graph_for_pruning.relabel(lambda i: i-1 if i > removed_vertex_label else i)
-                # Relabeling might not be standard or desired in SageMath if vertices are not integers 0..N-1
-                # For now, we skip explicit relabeling here, assuming Sage handles vertex labels robustly.
-                # Or, ensure vertices are always relabeled to be contiguous if NMCS expects that.
                 if removed_vertex_label is None: # Cannot prune further
                     break 
             else: # Did not attempt to prune this step
@@ -165,10 +150,9 @@ def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, ma
 
 def main():
     # Choose which conjecture to test
-    # Options: "Sidorenko", "Conj1", "Conj5", etc. (matching function names in scores.sage)
+    # Options: "Sidorenko" and other conjectures
     CONJECTURE_TO_TEST = "Sidorenko" 
     # CONJECTURE_TO_TEST = "Conj1"
-    # CONJECTURE_TO_TEST = "Conj5" # Example from AMCS paper (Liu et al.)
     
     print(f"--- Attempting to find a counterexample for {CONJECTURE_TO_TEST} using AMCS ---")
     
@@ -199,23 +183,7 @@ def main():
         run_trees_only = False
 
     elif CONJECTURE_TO_TEST == "Conj1":
-        target_score_function = Conj1_score
-        initial_G = graphs.RandomTree(10) # Conj1 might be for trees or general graphs
-        # Check if Conj1 is specific to trees; adjust initial_G and trees_only accordingly
-        # The original amcs.sage used RandomTree(5) and trees_only=False (default)
-        run_trees_only = False # Assuming general graphs, or set True if for trees
-
-    elif CONJECTURE_TO_TEST == "Conj5": # Example from AMCS paper (Liu et al. 2021) for trees
-        target_score_function = Conj5_score
-        initial_G = graphs.RandomTree(15) # Typically on trees
-        run_trees_only = True # Assuming Conjecture 5 is for trees
-        
-    # Add more elif blocks for Conj2, Conj3, etc. from your scores.sage
-    # Example:
-    # elif CONJECTURE_TO_TEST == "ConjX":
-    #     target_score_function = ConjX_score
-    #     initial_G = graphs.RandomGNP(10, 0.4) # Or RandomTree, specific graph, etc.
-    #     run_trees_only = False # Or True if conjecture is for trees
+        pass # Add stuff relevant to conjecture 1
 
     else:
         print(f"Error: Conjecture '{CONJECTURE_TO_TEST}' not recognized or configured in main().")
@@ -247,9 +215,5 @@ def main():
         print("than naive methods but can still be slow for large H (large treewidth) or large G.")
         print("Results depend heavily on the chosen H and the search parameters.")
 
-# To run from Sage console after defining/saving amcs.sage, nmcs.sage, scores.sage:
-# sage: load('amcs.sage') # This will now also load nmcs.sage and scores.sage
-# sage: main()           # Then call the main function defined in amcs.sage
-# Or, if you run `sage amcs.sage` from command line, add `if __name__ == "__main__": main()`
 if __name__ == "__main__":
     main()
