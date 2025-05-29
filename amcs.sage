@@ -1,4 +1,6 @@
 from time import time
+from scores import Conj1_score
+from nmcs import NMCS_connected_graphs
 
 def remove_randleaf(G):
     '''Removes a random leaf from G'''
@@ -26,7 +28,9 @@ def AMCS(score_function, initial_graph=graphs.RandomTree(5), max_depth=5, max_le
     else:
         NMCS = NMCS_connected_graphs
     print("Best score (initial):", float(score_function(initial_graph)))
-    plot(initial_graph, vertex_labels=False, layout="spring").show()
+
+    """ Do not need initial graph plot """
+    #plot(initial_graph, vertex_labels=False, layout="spring").show()
     depth = 0
     level = 1
     min_order = initial_graph.order()
@@ -51,7 +55,9 @@ def AMCS(score_function, initial_graph=graphs.RandomTree(5), max_depth=5, max_le
             current_graph = next_graph.copy()
             depth = 0
             level = 1
-            plot(current_graph, vertex_labels=False, layout="spring").show()
+
+            """ Do not need current graph plot """
+            #plot(current_graph, vertex_labels=False, layout="spring").show()
         elif depth < max_depth:
             depth += 1
         else:
@@ -59,6 +65,7 @@ def AMCS(score_function, initial_graph=graphs.RandomTree(5), max_depth=5, max_le
             level += 1
     if score_function(current_graph) > 0:
         print("Counterexample found")
+        plot(current_graph, vertex_labels=False, layout="spring").show() # printing current graph
     else:
         print("No counterexample found")
     return current_graph
