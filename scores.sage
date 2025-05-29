@@ -53,7 +53,7 @@ def count_homomorphisms(H, G):
              return 0
         return len(list(G.homomorphisms(H))) # Fallback
 
-def sidorenko_score(G, H_fixed, e_H, v_H_order):
+def calculate_sidorenko_score(G, H_fixed, e_H, v_H_order):
     """
     Calculates the score for Sidorenko's conjecture.
     Score = t_K2(G)^e(H) - t_H(G)
@@ -105,6 +105,22 @@ def sidorenko_score(G, H_fixed, e_H, v_H_order):
         
     #print(f"G(n={n_G}, m={m_G}): t_K2(G)={t_K2_G:.4f}, t_H(G)={t_H_G:.4f}, e(H)={e_H}, Score={score:.6f}")
     return score
+
+def get_sidorenko_score_function(H_target_graph):
+    """
+    This is the 'unique score-calculating function' setup for Sidorenko.
+    It takes the fixed bipartite graph H, pre-calculates its properties,
+    and returns a score function suitable for AMCS (which takes only G).
+    """
+    if not H_target_graph.is_bipartite():
+        raise ValueError("H_target_graph must be bipartite for Sidorenko's conjecture!")
+    
+    e_H = H_target_graph.size()
+    v_H_order = H_target_graph.order()
+    
+    print(f"Sidorenko score function configured for H: order={v_H_order}, size={e_H}")
+    # The returned lambda captures H_target_graph, e_H, v_H_order from this scope
+    return lambda G_prime: calculate_sidorenko_score(G_prime, H_target_graph, e_H, v_H_order)
 
 def proximity(G):
     '''Returns the proximity of the graph G'''

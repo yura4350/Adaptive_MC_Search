@@ -45,7 +45,7 @@ def remove_subdiv(G):
 # The main changes are in how it's called and the definition of the score function.
 # We might want to adjust min_order based on H.
 
-def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, max_level=3, trees_only=False, H_for_min_order=None):
+def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, max_level=3, trees_only=False, H_for_min_order=None, visualize_steps=False):
     '''The AMCS algorithm'''
     # NMCS is assumed to be NMCS_connected_graphs as per original code if trees_only is False.
     # If trees_only is True, it would use NMCS_trees (not provided here).
@@ -134,7 +134,8 @@ def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, ma
             depth = 0 # Reset depth on improvement
             #level = 1 # Original AMCS resets level too; consider if this is intended for progress
             print(f"Found new best graph with score: {float(best_score_overall):.6f}")
-            plot(best_graph_overall, vertex_labels=False, layout="spring").show() # Optional: show new best
+            if visualize_steps:
+                plot(best_graph_overall, vertex_labels=False, layout="spring").show() # Optional: show new best
             if best_score_overall > 0: # Counterexample found
                 break
         elif depth < max_depth:
@@ -152,7 +153,7 @@ def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, ma
         print("\nCounterexample found for Sidorenko's Conjecture!")
         print(f"Graph G: order = {best_graph_overall.order()}, size = {best_graph_overall.size()}")
         print(f"Score V(H,G) = t_K2(G)^e(H) - t_H(G) = {float(best_score_overall):.6f}")
-        #plot(best_graph_overall, vertex_labels=False, layout="spring").show()
+        plot(best_graph_overall, vertex_labels=False, layout="spring").show()
         print("Edges of G:", best_graph_overall.edges(labels=False))
     else:
         print("\nNo counterexample found within the given limits.")
@@ -163,140 +164,92 @@ def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, ma
     return best_graph_overall
 
 def main():
-    print("Attempting to find a counterexample to Sidorenko's Conjecture using AMCS.")
+    # Choose which conjecture to test
+    # Options: "Sidorenko", "Conj1", "Conj5", etc. (matching function names in scores.sage)
+    CONJECTURE_TO_TEST = "Sidorenko" 
+    # CONJECTURE_TO_TEST = "Conj1"
+    # CONJECTURE_TO_TEST = "Conj5" # Example from AMCS paper (Liu et al.)
     
-    # MAIN ATTEMPT DATA
-    '''
-     1. Define the fixed bipartite graph H
-     Example: H = K_{5,5} - C_10 (Möbius-Kantor graph variant)
-     K5,5 has 10 vertices. C10 also has 10 vertices.
-    # K5,5: U = {0,1,2,3,4}, V = {5,6,7,8,9}
-    H_fixed = graphs.CompleteBipartiteGraph(5,5) # Vertices 0-4 in one part, 5-9 in the other
-    # Define C10 edges to remove: e.g. (0,5)-(5,1)-(1,6)-(6,2)-(2,7)-(7,3)-(3,8)-(8,4)-(4,9)-(9,0)
-    # This is a bit tricky to map directly to K5,5 vertex labeling if not careful.
-    # Let's use a known construction if available, or define carefully.
-    # For K5,5: vertices are typically 0..4 and 5..9.
-    # C10 edges: (0,5), (1,5), (1,6), (2,6), (2,7), (3,7), (3,8), (4,8), (4,9), (0,9)
-    # It seems the above C10 description is incorrect for K5,5.
-    # A C10 in K5,5: u0-v0-u1-v1-u2-v2-u3-v3-u4-v4-u0
-    # Let U = {0,1,2,3,4} and V = {5,6,7,8,9}
-    # Edges of C10: (0,5), (5,1), (1,6), (6,2), (2,7), (7,3), (3,8), (8,4), (4,9), (9,0) - This looks like a valid C10
+    print(f"--- Attempting to find a counterexample for {CONJECTURE_TO_TEST} using AMCS ---")
     
-    # Create K5,5
-    H_k55 = graphs.CompleteBipartiteGraph(5,5) # Vertices 0..4 (part A) and 5..9 (part B)
-    
-    # Edges of C10 to remove. Assume parts are {0,1,2,3,4} and {5,6,7,8,9}
-    # Path: 0-5-1-6-2-7-3-8-4-9-0
-    c10_edges_to_remove = [
-        (0,5), (1,5), (1,6), (2,6), (2,7), (3,7), (3,8), (4,8), (4,9), (0,9)
-    ]
-    # Correction for K5,5 \ C10 - the standard C10 removed is u0-v0-u1-v1-u2-v2-u3-v3-u4-v4-u0
-    # Vertices U = {u0, u1, u2, u3, u4}, V = {v0, v1, v2, v3, v4}
-    # Let's map Sage K(5,5) vertices: first 5 are U, next 5 are V.
-    # So, u_i -> i, v_j -> 5+j
-    # u0=0, u1=1, u2=2, u3=3, u4=4
-    # v0=5, v1=6, v2=7, v3=8, v4=9
-    # C10 edges: (u0,v0), (v0,u1), (u1,v1), (v1,u2), (u2,v2), (v2,u3), (u3,v3), (v3,u4), (u4,v4), (v4,u0)
-    # (0,5), (5,1), (1,6), (6,2), (2,7), (7,3), (3,8), (8,4), (4,9), (9,0) - This is indeed a C10.
-    # Wait, (5,1) is not an edge if 5 is in one part and 1 in another (it is).
-    # The C10 must alternate parts. u0-v0-u1-v1...
-    # The edges are (ui, vj). So (5,1) is valid if 5 is from V and 1 from U.
-    # Sage K(m,n) creates vertices 0..m-1 and m..m+n-1.
-    # So for K(5,5), vertices are 0..4 (first part) and 5..9 (second part).
-    # The C10 edges listed: (0,5), (1,5) - NO, (1,5) is ok, but (5,1) is same edge.
-    # The list c10_edges_to_remove was faulty.
-    # C10 edges: (0,5), (1,6), (2,7), (3,8), (4,9) AND (0,6), (1,7), (2,8), (3,9), (4,5) ??? NO.
-    # Let's use a simpler H known to be bipartite, or a clearly defined K5,5 - C10.
-    # The Möbius-Kantor graph K5,5 - C10 has 15 edges. K5,5 has 25 edges. C10 has 10 edges.
-    # A C10 in K5,5: (0,5)-(1,5)-(1,6)-(2,6)... this is wrong.
-    # A C10 in K5,5: (0,5)-(5,1)-(1,6)-(6,2)-(2,7)-(7,3)-(3,8)-(8,4)-(4,9)-(9,0)
-    # Edges are: (0,5), (1,5), (1,6), (2,6), (2,7), (3,7), (3,8), (4,8), (4,9), (0,9) this is also wrong.
-    # Edges are: (u0,v0), (u1,v0), (u1,v1), (u2,v1), ... No.
-    
-    # H_fixed = graphs.CycleGraph(4) # Example: C4 (which is K2,2)
-    # H_fixed = graphs.CompleteBipartiteGraph(2,3) # Example K2,3
-    
-    # Let's define K5,5 \ C10 carefully
-    # V1 = [0,1,2,3,4], V2 = [5,6,7,8,9]
-    H_fixed = graphs.CompleteBipartiteGraph(5,5) # Edges between V1 and V2
-    # C10 edges to remove (example): (0,5), (1,6), (2,7), (3,8), (4,9), (0,6), (1,7), (2,8), (3,9), (4,5)
-    # Edges of a C10 in K5,5: (v0,w0), (w0,v1), (v1,w1), (w1,v2), (v2,w2), (w2,v3), (v3,w3), (w3,v4), (v4,w4), (w4,v0)
-    # Let U = {0,1,2,3,4}, V = {5,6,7,8,9}
-    c10_edges_to_remove = [
-        (0,5), (1,5), # This means vertex 5 is connected to 0 and 1.
-        (1,6), (2,6), # Vertex 6 connected to 1 and 2
-        (2,7), (3,7), # ...
-        (3,8), (4,8),
-        (4,9), (0,9)  # Vertex 9 connected to 4 and 0
-    ] # This is a union of 5 C4s sharing edges, or a specific structure.
-      # This definition of C10 removal is the "standard" one for the Mobius-Kantor graph which IS K5,5 \ C10.
-      # The standard C10 removed is edges (u_i, v_i) and (u_i, v_{i+1}) (indices mod 5).
-      # u_i are part 1 (0-4), v_i are part 2 (5-9).
-      # (0,5), (0,6)
-      # (1,6), (1,7)
-      # (2,7), (2,8)
-      # (3,8), (3,9)
-      # (4,9), (4,5) --- this is the standard K5,5 \ C10
-    
-    H_fixed = graphs.CompleteBipartiteGraph(5,5)
-    edges_to_remove_for_K55_minus_C10 = [
-        (0,5), (0,6), (1,6), (1,7), (2,7), (2,8), (3,8), (3,9), (4,9), (4,5)
-    ]
-    H_fixed.delete_edges(edges_to_remove_for_K55_minus_C10)
-    
-    print(f"Chosen H: {H_fixed.name()} (or K5,5 - C10). Order={H_fixed.order()}, Size={H_fixed.size()}")
-    if not H_fixed.is_bipartite():
-        raise ValueError("H_fixed must be bipartite for Sidorenko's conjecture!")
-    '''
-    # Example: H_fixed = C_6 (a cycle with 6 vertices, which is bipartite)
-    H_fixed = graphs.CycleGraph(6)
+    target_score_function = None
+    initial_G = None
+    H_for_sidorenko = None # Only used if CONJECTURE_TO_TEST is "Sidorenko"
+    run_trees_only = False # Default for most conjectures unless they are tree-specific
 
-    e_H = H_fixed.size()
-    v_H_order = H_fixed.order()
+    if CONJECTURE_TO_TEST == "Sidorenko":
+        # Define H_fixed for Sidorenko
+        # H_fixed = graphs.CycleGraph(6) # A simpler H for quick testing
+        H_fixed = graphs.CompleteBipartiteGraph(5,5)
+        edges_to_remove_K55_C10 = [(0,5), (0,6), (1,6), (1,7), (2,7), (2,8), (3,8), (3,9), (4,9), (4,5)]
+        H_fixed.delete_edges(edges_to_remove_K55_C10)
+        print(f"Using H = K5,5-C10 (Order={H_fixed.order()}, Size={H_fixed.size()}) for Sidorenko.")
+        
+        target_score_function = get_sidorenko_score_function(H_fixed)
+        H_for_sidorenko = H_fixed # Pass H to AMCS for min_order logic
+        
+        # Initial G for Sidorenko
+        n_init_G = H_fixed.order() + 2 if H_fixed.order() > 0 else 5 # e.g., 12 for K5,5-C10
+        initial_G = graphs.RandomGNP(n_init_G, 0.5)
+        if not initial_G.is_connected() and initial_G.order() > 1:
+            lgst_comp = initial_G.connected_component_subgraph(initial_G.random_vertex() if initial_G.order() >0 else None)
+            if lgst_comp and lgst_comp.order() >= H_fixed.order(): initial_G = lgst_comp
+            elif H_fixed.order() > 0: initial_G = graphs.PathGraph(H_fixed.order())
+            else: initial_G = Graph()
+        run_trees_only = False
 
-    # 2. Create a score function wrapper for AMCS
-    # AMCS expects score_function(G)
-    current_sidorenko_score_func = lambda G_prime: sidorenko_score(G_prime, H_fixed, e_H, v_H_order)
+    elif CONJECTURE_TO_TEST == "Conj1":
+        target_score_function = Conj1_score
+        initial_G = graphs.RandomTree(10) # Conj1 might be for trees or general graphs
+        # Check if Conj1 is specific to trees; adjust initial_G and trees_only accordingly
+        # The original amcs.sage used RandomTree(5) and trees_only=False (default)
+        run_trees_only = False # Assuming general graphs, or set True if for trees
 
-    # 3. Define initial graph G for AMCS
-    # Should have at least v_H_order vertices ideally.
-    # For K5,5-C10, v_H_order = 10.
-    # Let's start with a random graph of slightly larger order.
-    n_initial_G = 12 # Example starting size
-    p_initial_G = 0.4 # Example edge probability
-    initial_G_for_sidorenko = graphs.RandomGNP(n_initial_G, p_initial_G)
-    # Ensure it's connected if NMCS_connected_graphs expects it
-    # For simplicity, we'll rely on AMCS to build up connectivity if needed, or ensure RandomGNP is connected.
-    # If RandomGNP can be disconnected:
-    if not initial_G_for_sidorenko.is_connected() and initial_G_for_sidorenko.order() > 1:
-        print("Warning: Initial G is not connected. Taking largest connected component.")
-        initial_G_for_sidorenko = initial_G_for_sidorenko.connected_component_subgraph(initial_G_for_sidorenko.random_vertex())
-        if initial_G_for_sidorenko.order() < v_H_order :
-             initial_G_for_sidorenko = graphs.PathGraph(v_H_order) # Fallback
+    elif CONJECTURE_TO_TEST == "Conj5": # Example from AMCS paper (Liu et al. 2021) for trees
+        target_score_function = Conj5_score
+        initial_G = graphs.RandomTree(15) # Typically on trees
+        run_trees_only = True # Assuming Conjecture 5 is for trees
+        
+    # Add more elif blocks for Conj2, Conj3, etc. from your scores.sage
+    # Example:
+    # elif CONJECTURE_TO_TEST == "ConjX":
+    #     target_score_function = ConjX_score
+    #     initial_G = graphs.RandomGNP(10, 0.4) # Or RandomTree, specific graph, etc.
+    #     run_trees_only = False # Or True if conjecture is for trees
 
-    print(f"Initial G for AMCS: order={initial_G_for_sidorenko.order()}, size={initial_G_for_sidorenko.size()}")
+    else:
+        print(f"Error: Conjecture '{CONJECTURE_TO_TEST}' not recognized or configured in main().")
+        return
 
-    # 4. Run AMCS
-    # max_depth and max_level can be tuned. These are small for a quick test.
-    # trees_only should be False for general graphs G.
+    if target_score_function is None or initial_G is None:
+        print("Error: Score function or initial graph not set up for the chosen conjecture.")
+        return
+
+    # AMCS Parameters
+    MAX_DEPTH = 3  # Keep small for testing; increase for real search
+    MAX_LEVEL = 1  # Keep small for testing
+    VISUALIZE = False # Set to True to see plots of best graphs found
+
     start_time = time()
-    # Pass H_fixed to AMCS for it to determine min_order
-    AMCS(current_sidorenko_score_func, 
-         initial_graph=initial_G_for_sidorenko, 
-         max_depth=3,  # Reduced for quick test; increase for real search
-         max_level=2,  # Reduced for quick test
-         trees_only=False,
-         H_for_min_order=H_fixed)
+    AMCS(score_function=target_score_function, 
+         initial_graph=initial_G, 
+         max_depth=MAX_DEPTH,
+         max_level=MAX_LEVEL,
+         trees_only=run_trees_only,
+         H_for_min_order=H_for_sidorenko, # Pass H only if it's Sidorenko, else None
+         visualize_steps=VISUALIZE)
     
-    print("Search time: %s seconds" % (time() - start_time))
-    print("\n--- Note on Homomorphism Counting ---")
-    print("The 'count_homomorphisms' function can be extremely slow for larger H or G.")
-    print("For serious attempts, this part would need significant optimization,")
-    print("or the use of HPC resources, or validated approximation methods.")
-    print("The current implementation is for demonstration with small graphs.")
+    print(f"\nTotal search time for {CONJECTURE_TO_TEST}: {time() - start_time:.4f} seconds")
 
+    if CONJECTURE_TO_TEST == "Sidorenko":
+        print("\n--- Note on Homomorphism Counting (Sidorenko) ---")
+        print("The 'count_homomorphisms' function using 'GraphHomomorphismCounter' is more efficient")
+        print("than naive methods but can still be slow for large H (large treewidth) or large G.")
+        print("Results depend heavily on the chosen H and the search parameters.")
+
+# To run from Sage console after defining/saving amcs.sage, nmcs.sage, scores.sage:
+# sage: load('amcs.sage') # This will now also load nmcs.sage and scores.sage
+# sage: main()           # Then call the main function defined in amcs.sage
+# Or, if you run `sage amcs.sage` from command line, add `if __name__ == "__main__": main()`
 if __name__ == "__main__":
-    # This requires a SageMath environment to run.
-    # Example: save as amcs_sidorenko.py and run "sage -python amcs_sidorenko.py"
-    # Or run inside a SageMath notebook.
     main()
