@@ -5,38 +5,22 @@ from sage.all import graphs, plot # Using SageMath environment for graphs and pl
 # Slightly edited helper functions from the original AMCS code
 def remove_randleaf(G):
     '''Removes a random leaf from G'''
-    if not G: return None
     leaves = [v for v in G.vertices() if G.degree(v) == 1]
-    if not leaves:
-        # If no leaves and G is not empty, try to remove a degree-0 vertex if any
-        deg_0 = [v for v in G.vertices() if G.degree(v) == 0]
-        if deg_0:
-            leaf = choice(deg_0)
-            G.delete_vertex(leaf)
-            return leaf # Technically not a leaf, but a vertex to remove
-        return None # Cannot remove
+    if leaves == []:
+        return
     leaf = choice(leaves)
     G.delete_vertex(leaf)
     return leaf
     
 def remove_subdiv(G):
     '''Removes a random subdivision from G'''
-    if not G: return None
     deg_2 = [v for v in G.vertices() if G.degree(v) == 2]
-    if not deg_2:
-        return remove_randleaf(G) # Fallback to removing a leaf
-    
+    if deg_2 == []:
+        return remove_randleaf(G)
     random_vertex = choice(deg_2)
-    neighbors = G.neighbors(random_vertex)
-    if len(neighbors) == 2: # Should always be true for degree 2 vertex
-        # Only add edge if neighbors are not already connected to avoid multi-edges,
-        # though SageMath graphs might handle this by default depending on type.
-        # If G is a simple graph, this check is good.
-        if not G.has_edge(neighbors[0], neighbors[1]):
-            G.add_edge(neighbors[0], neighbors[1])
+    G.add_edge(G.neighbors(random_vertex))
     G.delete_vertex(random_vertex)
     return random_vertex
-
 
 def AMCS(score_function, initial_graph=graphs.RandomGNP(10,0.3), max_depth=5, max_level=3, trees_only=False, H_for_min_order=None, visualize_steps=False):
     '''The AMCS algorithm'''
