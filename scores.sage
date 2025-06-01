@@ -1,5 +1,8 @@
 from numpy import argmax, abs
 
+# Import for working with exact numbers
+from sage.rings.rational_field import QQ
+
 import sys
 import os
 
@@ -55,57 +58,31 @@ def count_homomorphisms(H, G):
 
 def calculate_sidorenko_score(G, H_fixed, e_H, v_H_order):
     """
-    Calculates the score for Sidorenko's conjecture.
-    Score = t_K2(G)^e(H) - t_H(G)
-    A positive score indicates a counterexample.
-    H_fixed: The fixed bipartite graph H.
-    e_H: Number of edges in H_fixed.
-    v_H_order: Number of vertices in H_fixed.
+    Calculates the score for Sidorenko's conjecture using EXACT rational arithmetic
+    to avoid floating-point precision errors.
     """
     n_G = G.order()
-    m_G = G.size() # Number of edges in G
+    m_G = G.size()
 
-    if n_G == 0: # Avoid division by zero
-        return -float('inf') # Or some other indicator of an invalid graph for scoring
+    if n_G == 0:
+        return -float('inf')
 
-    # Calculate t_K2(G)
-    # t_K2(G) = hom(K2, G) / n_G^2 = 2*m_G / n_G^2
-    if n_G < 2 and m_G > 0: # Pathological case
-        t_K2_G = 0
-    elif n_G >=1 : # Handles n_G=1 case where m_G must be 0
-        t_K2_G = (2 * m_G) / (n_G**2) if n_G > 0 else 0
-    else: # n_G = 0
-        t_K2_G = 0
+    try:
+        t_K2_G_rational = QQ(2 * m_G) / (n_G**2)
+    except ZeroDivisionError:
+        t_K2_G_rational = QQ(0)
 
-
-    # Calculate t_H(G)
-    # t_H(G) = hom(H_fixed, G) / n_G^v_H_order
-    # This is the bottleneck
     num_homs_H_G = count_homomorphisms(H_fixed, G)
     
-    if n_G < v_H_order and num_homs_H_G > 0:
-        # This case should generally not happen if H has no isolated vertices
-        # and G is smaller than H. Homomorphism count definition might vary.
-        # Sage's homomorphism_count should be 0 if |V(G)| < |V(H)| and H is connected.
-        # If H has isolated vertices, it could be non-zero.
-        # For safety, if n_G is too small for a meaningful density, treat t_H_G as effectively zero
-        # or handle as per specific definition if H can map to smaller G.
-        # Given the typical context of Sidorenko, we usually assume G is large enough.
-        # If n_G < v_H_order, the term n_G**v_H_order can be problematic if v_H_order is large.
-        # However, if num_homs_H_G is 0 (as expected for connected H), then t_H_G is 0.
-        pass # num_homs_H_G will likely be 0 from count_homomorphisms if G is too small
-
-    t_H_G = num_homs_H_G / (n_G**v_H_order) if n_G > 0 and v_H_order > 0 else 0
-    
     try:
-        score = (t_K2_G**e_H) - t_H_G
-    except OverflowError: # Can happen if t_K2_G is large and e_H is large
-        print(f"Warning: OverflowError calculating score for G with {n_G} vertices, {m_G} edges. t_K2(G)={t_K2_G}, e(H)={e_H}")
-        return -float('inf') # Penalize configurations leading to overflow
-        
-    #print(f"G(n={n_G}, m={m_G}): t_K2(G)={t_K2_G:.4f}, t_H(G)={t_H_G:.4f}, e(H)={e_H}, Score={score:.6f}")
-    return score
+        t_H_G_rational = QQ(num_homs_H_G) / (n_G**v_H_order)
+    except ZeroDivisionError:
+        t_H_G_rational = QQ(0)
 
+    score_as_rational = (t_K2_G_rational**e_H) - t_H_G_rational
+    
+    return score_as_rational
+    
 def get_sidorenko_score_function(H_target_graph):
     """
     This is the 'unique score-calculating function' setup for Sidorenko.
