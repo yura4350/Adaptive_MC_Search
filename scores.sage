@@ -68,21 +68,21 @@ def calculate_sidorenko_score(G, H_fixed, e_H, v_H_order):
         return -float('inf')
 
     try:
-        t_K2_G_rational = QQ(2 * m_G) / (n_G**2)
+        t_K2_G_rational = QQ(2 * m_G) / QQ(n_G**2)
     except ZeroDivisionError:
         t_K2_G_rational = QQ(0)
 
     num_homs_H_G = count_homomorphisms(H_fixed, G)
     
     try:
-        t_H_G_rational = QQ(num_homs_H_G) / (n_G**v_H_order)
+        t_H_G_rational = QQ(num_homs_H_G) / QQ(n_G**v_H_order)
     except ZeroDivisionError:
         t_H_G_rational = QQ(0)
 
     score_as_rational = (t_K2_G_rational**e_H) - t_H_G_rational
     
     return score_as_rational
-    
+
 def get_sidorenko_score_function(H_target_graph):
     """
     This is the 'unique score-calculating function' setup for Sidorenko.

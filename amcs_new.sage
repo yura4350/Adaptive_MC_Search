@@ -95,13 +95,13 @@ def main():
     if CONJECTURE_TO_TEST == "Sidorenko":
 
         # Define H_fixed for Sidorenko
-        """
+        
         H_fixed = graphs.CompleteBipartiteGraph(5,5)
         edges_to_remove_K55_C10 = [(0,5), (0,6), (1,6), (1,7), (2,7), (2,8), (3,8), (3,9), (4,9), (4,5)]
         H_fixed.delete_edges(edges_to_remove_K55_C10)
-        print(f"Using H = K5,5-C10 (Order={H_fixed.order()}, Size={H_fixed.size()}) for Sidorenko."
-        """
-        H_fixed = graphs.CycleGraph(6)
+        print(f"Using H = K5,5-C10 (Order={H_fixed.order()}, Size={H_fixed.size()}) for Sidorenko.")
+        
+        #H_fixed = graphs.CycleGraph(6)
         
         # Define score function
         target_score_function = get_sidorenko_score_function(H_fixed)
