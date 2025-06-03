@@ -96,13 +96,21 @@ def main():
 
         # Define H_fixed for Sidorenko
         
-        H_fixed = graphs.CompleteBipartiteGraph(5,5)
-        edges_to_remove_K55_C10 = [(0,5), (0,6), (1,6), (1,7), (2,7), (2,8), (3,8), (3,9), (4,9), (4,5)]
-        H_fixed.delete_edges(edges_to_remove_K55_C10)
-        print(f"Using H = K5,5-C10 (Order={H_fixed.order()}, Size={H_fixed.size()}) for Sidorenko.")
+        # Famous unproven case - K5,5 - 10
+        #H_fixed = graphs.CompleteBipartiteGraph(5,5)
+        #edges_to_remove_K55_C10 = [(0,5), (0,6), (1,6), (1,7), (2,7), (2,8), (3,8), (3,9), (4,9), (4,5)]
+        #H_fixed.delete_edges(edges_to_remove_K55_C10)
+        #print(f"Using H = K5,5-C10 (Order={H_fixed.order()}, Size={H_fixed.size()}) for Sidorenko.")
         
+        # Simple case for check
         #H_fixed = graphs.CycleGraph(6)
-        
+
+        # K_4,4 - M - also unresolved for Sidorenko conjecture
+        H_fixed = graphs.CompleteBipartiteGraph(4, 4)
+        edges_to_remove_K44_M = [(0, 4), (1, 5), (2, 6), (3, 7)]
+        H_fixed.delete_edges(edges_to_remove_K44_M)
+        print(f"Using H = K4,4 - M (Order={H_fixed.order()}, Size={H_fixed.size()}) for Sidorenko.")
+
         # Define score function
         target_score_function = get_sidorenko_score_function(H_fixed)
         H_for_sidorenko = H_fixed # Pass H to AMCS for min_order logic
