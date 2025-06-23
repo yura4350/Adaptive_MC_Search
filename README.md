@@ -94,7 +94,10 @@ This document outlines the structure of the project, detailing the purpose of ea
 3.  **Launch the Script:**
     Run the main script using Sage.
     ```bash
-    sage amcs_for_sidorenko.sage
+    sage
+    load('scores.sage')
+    load('nmcs.sage')
+    load('amcs_for_sidorenko.sage')
     ```
 
 4.  **Analyze the Output:**
