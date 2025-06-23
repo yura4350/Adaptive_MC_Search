@@ -6,55 +6,47 @@ from sage.rings.rational_field import QQ
 import sys
 import os
 
-# Determine the absolute path to the directory containing this script
-# This helps in creating a robust path to the library
-script_dir = os.path.abspath(".")
-project_root_dir = os.getcwd()
+sys.path.append('CountHom') # To gain access to homomorphism counting library
 
-# Path to the 'count-graph-homs' directory
-path_to_count_graph_homs = os.path.join(project_root_dir, 'count-graph-homs')
-
-if path_to_count_graph_homs not in sys.path:
-    sys.path.insert(0, path_to_count_graph_homs)
-
-try:
-    from standard_hom_count import GraphHomomorphismCounter
-    print("Successfully imported GraphHomomorphismCounter from count-graph-homs.")
-except ImportError as e:
-    print(f"Error importing from count-graph-homs: {e}")
-    print(f"Ensure the path '{path_to_count_graph_homs}' is correct and contains 'standard_hom_count.py'.")
-    print("Current sys.path includes:")
-    for p in sys.path:
-        print(f"  - {p}")
+# The alias 'HomlibGraph' is crucial to avoid conflicts with Sage's native 'Graph'.
+from homlib import Graph as HomlibGraph, countHom
 
 def count_homomorphisms(H, G):
     """
-    Counts the number of homomorphisms from graph H to graph G
-    using the external 'count-graph-homs' library.
+    Counts homomorphisms by converting Sage graphs to homlib graphs via adjacency lists.
     """
     if G.order() == 0:
         return 0
-    if H.order() == 0: # Homomorphism from empty graph to any graph is 1 (empty map)
-        return 1       # if G is non-empty, or 0 if G is empty and H is not.
-                       # This library should handle edge cases.
+    if H.order() == 0:
+        return 1
 
     try:
-        # Create the counter object for the specific H and G pair
-        hom_counter = GraphHomomorphismCounter(H, G)
-        num_homs = hom_counter.count_homomorphisms()
-        return num_homs
-    except NameError: # If GraphHomomorphismCounter is not found (library not installed/imported correctly)
-        print("Error: GraphHomomorphismCounter not found. Make sure 'count-graph-homs' is installed and imported.")
-        print("Falling back to Sage's default (potentially slow) method.")
-        if G.order() < H.order() and H.is_connected() and H.order() > 0 : # Heuristic for simple cases
-             return 0
-        return len(list(G.homomorphisms(H))) # Fallback
+        # --- FIX: Use the modern .to_dictionary() method instead of .adjacency_list() ---
+
+        # 1. Get the adjacency dictionary from the Sage Graph objects.
+        h_dict = H.to_dictionary()
+        g_dict = G.to_dictionary()
+
+        # 2. Build the adjacency list from the dictionary.
+        #    This assumes vertices are labeled 0, 1, ..., n-1, which is true
+        #    for the graphs used in the AMCS algorithm.
+        #    Also, explicitly cast to standard Python ints for the C++ library.
+        h_adj_list = [[int(v) for v in h_dict.get(i, [])] for i in range(H.order())]
+        g_adj_list = [[int(v) for v in g_dict.get(i, [])] for i in range(G.order())]
+
+        # 3. Create homlib.Graph objects from the now-correct adjacency lists.
+        H_homlib = HomlibGraph(h_adj_list)
+        G_homlib = HomlibGraph(g_adj_list)
+
+        # 4. Call the countHom function from the library.
+        return countHom(H_homlib, G_homlib)
+
     except Exception as e:
-        print(f"Error using GraphHomomorphismCounter for H: {H.edges(labels=False)} in G: {G.edges(labels=False)}: {e}")
+        print(f"An error occurred within the homlib library for H: {H.edges(labels=False)} in G: {G.edges(labels=False)}")
+        print(f"Error details: {e}")
         print("Falling back to Sage's default (potentially slow) method.")
-        if G.order() < H.order() and H.is_connected() and H.order() > 0:
-             return 0
-        return len(list(G.homomorphisms(H))) # Fallback
+        sys.exit(0)
+        
 
 def calculate_sidorenko_score(G, H_fixed, e_H, v_H_order):
     """
@@ -151,53 +143,6 @@ def connectivity(G):
     return sorted(G.kirchhoff_matrix().eigenvalues())[1]
     
 def Conj1_score(G):
-    '''Score function for Conjecture 1'''
+    '''Example of score function if had to be used for other conjectures'''
     n = G.order()
     return sqrt(n - 1) + 1 - max(G.spectrum()) - int(G.matching(value_only=True, use_edge_labels=False))
-
-def Conj2_score(G):
-    '''Score function for Conjecture 2'''
-    return -proximity(G) - dist_eigenvalue(G, floor(2 * G.diameter() / 3))
-
-def Conj3_score(G):
-    '''Score function for Conjecture 3'''
-    n = G.order()
-    return abs(p_A(G) / m(G) - (1 - p_D(G) / n)) - 0.28
-    
-def Conj4_score(G):
-    '''Score function for Conjecture 4'''
-    return sorted(G.spectrum())[-2] - harmonic_index(G)
-
-def Conj5_score(G):
-    '''Score function for Conjecture 5'''
-    n = G.order()
-    return mod_zagreb_2(G) - (n + 1) / 4
-
-def Conj6_score(G):
-    '''Score function for Conjecture 6'''
-    n = G.order()
-    gamma = G.dominating_set(value_only=True)
-    return (1 - gamma)/(2 * n - 2 * gamma) + (gamma + 1)/2 - mod_zagreb_2(G)
-
-def Conj7_score(G):
-    '''Score function for Conjecture 7'''
-    n = G.order()
-    return max(G.spectrum()) * proximity(G) - n + 1
-
-def Conj8_score(G):
-    '''Score function for Conjecture 8'''
-    n = G.order()
-    if n % 2 == 0:
-        return 0.5 * (n ** 2 / (n - 1)) * (1 - cos(pi / n)) - connectivity(G) * proximity(G)
-    if n % 2 == 1:
-        return 0.5 * (n + 1) * (1 - cos(pi / n)) - connectivity(G) * proximity(G)
-
-def Conj9_score(G):
-    '''Score function for Conjecture 9'''
-    n = G.order()
-    return sqrt(n - 1) - n + 1 - max(G.spectrum()) + len(G.independent_set())
-
-def Conj10_score(G):
-    '''Score function for Conjecture 10'''
-    n = G.order()
-    return randic_index(G) + len(G.independent_set()) - n + 1 - sqrt(n - 1)
